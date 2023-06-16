@@ -1,3 +1,7 @@
-einops
-diffusers
-typer[all]
+# sketch-guided text-to-image
+einops==0.6.1
+diffusers==0.17.1
+typer[all]==0.9.0
+
+# pidinet
+scikit-image==0.21.0

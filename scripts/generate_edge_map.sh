@@ -1,0 +1,1 @@
+python pidinet-for-imagenet/main.py --model pidinet --config carv4 --sa --dil -j 4 --gpu 0 --savedir ./data/imagenet/edge_maps --datadir ./data/imagenet/imagenet_images --dataset image_dataset --evaluate pidinet-for-imagenet/trained_models/table5_pidinet.pth
