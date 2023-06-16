@@ -1,0 +1,6 @@
+[submodule "pidinet-for-imagenet"]
+	path = pidinet-for-imagenet
+	url = https://github.com/ogkalu2/pidinet-for-imagenet
+[submodule "ImageNet-Datasets-Downloader"]
+	path = ImageNet-Datasets-Downloader
+	url = https://github.com/mf1024/ImageNet-Datasets-Downloader
