@@ -40,7 +40,19 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvi
 pip install -r requirements.txt
 ```
 
-4. Download the pre-trained models and necessary datasets. (TODO)
+4. Download the pre-trained models and necessary datasets.
+    * ImageNet Dataset
+    ```shell
+    chmod u+x scripts/download_imagenet_room_dataset.sh
+    ./scripts/download_imagenet_room_dataset.sh
+    ```
+    
+    * Edge Map Generation with [pidinet](https://github.com/ogkalu2/pidinet-for-imagenet)
+    ```shell
+    chmod u+x scripts/generate_edge_map.sh
+    ./scripts/generate_edge_map.sh
+    ```
+    
 
 ## Usage
 
