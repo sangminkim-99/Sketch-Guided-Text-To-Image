@@ -33,13 +33,14 @@ conda create -n sketch-guided-env python=3.9
 conda activate sketch-guided-env
 ```
 
-2. Install the necessary dependencies. You may use `pip` to install the required packages:
+3. Install the necessary dependencies. You may use `pip` to install the required packages:
 
 ```shell
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia # change to your own version of torch
 pip install -r requirements.txt
 ```
 
-3. Download the pre-trained models and necessary datasets. (TODO)
+4. Download the pre-trained models and necessary datasets. (TODO)
 
 ## Usage
 
