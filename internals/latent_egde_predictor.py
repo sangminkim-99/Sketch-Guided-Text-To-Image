@@ -40,7 +40,8 @@ class LatentEdgePredictor(nn.Module):
         pos_encoding = torch.cat(pos_elem, dim=1)
         
         x = torch.cat((x, t, pos_encoding), dim=1)
-        x = rearrange(x, "b c h w -> (b w h) c").to(torch.float16)
+        # x = rearrange(x, "b c h w -> (b w h) c").to(torch.float16)
+        x = rearrange(x, "b c h w -> (b w h) c")
         
         return self.layers(x)
     

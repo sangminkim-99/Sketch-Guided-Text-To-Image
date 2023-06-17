@@ -21,9 +21,9 @@ def encode_text(text_encoder: CLIPTextModel, tokenizer: CLIPTokenizer, text):
     # return torch.cat([uncond_embeddings, text_embeddings]).unsqueeze(0)
     return torch.cat([uncond_embeddings, text_embeddings])
 
-def noisy_latent(image, noise_scheduler, num_train_timestep):
+def noisy_latent(image, noise_scheduler, batch_size, num_train_timestep):
     # TODO: check the range of timesteps
-    timesteps = torch.randint(0, num_train_timestep, (1,), device=image.device).long()
+    timesteps = torch.randint(0, num_train_timestep, (batch_size,), dtype=torch.int64, device=image.device).long()
     noise = torch.randn(image.shape).to(image.device)
     noisy_image = noise_scheduler.add_noise(image, noise, timesteps)
     sqrt_alpha_prod = noise_scheduler.alphas_cumprod[timesteps.cpu()].to(image.device) ** 0.5

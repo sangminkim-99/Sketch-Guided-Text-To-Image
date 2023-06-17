@@ -37,22 +37,30 @@ def train_LEP(
 
     # initialize stable diffusion pipeline.
     # the paper use stable-diffusion-v1.4
-    pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16, safety_checker=None)
-    pipe = pipe.to(device)
-
-    # load clip tokenizer
-    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    pipe = StableDiffusionPipeline.from_pretrained(model_id, safety_checker=None).to(device)
 
     # hook the feature_blocks of unet
     feature_blocks = hook_unet(pipe.unet)
 
     # initialize LEP
-    LEP = LatentEdgePredictor(input_dim=9320, output_dim=4, num_layers=10)
+    LEP = LatentEdgePredictor(input_dim=9324, output_dim=4, num_layers=10).to(device)
+
+    pipe.unet.eval()
+    pipe.vae.eval()
+    pipe.text_encoder.eval()
+
+    # need this lines?
+    pipe.unet.requires_grad_(False)
+    pipe.text_encoder.requires_grad_(False)
+
+    # load clip tokenizer
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+
     optimizer = torch.optim.Adam(LEP.parameters(), lr=lr)
     criterion = torch.nn.MSELoss()
-    loss = None
 
-    for step, (image, edge_map, caption) in tqdm(enumerate(dataloader), desc=f'Loss: {loss}'):
+    tbar = tqdm(dataloader)
+    for step, (image, edge_map, caption) in enumerate(tbar):
 
         optimizer.zero_grad()
 
@@ -61,29 +69,31 @@ def train_LEP(
         latent_edge = encode_img(pipe.vae, edge_map)
         
         caption_embedding = torch.cat([encode_text(pipe.text_encoder, tokenizer, c) for c in caption])
-        noisy_image, noise_level, timesteps = noisy_latent(latent_image, pipe.scheduler, num_train_timestep)
+        noisy_image, noise_level, timesteps = noisy_latent(latent_image, pipe.scheduler, batch_size * 2, num_train_timestep)
 
         # one reverse step to get the feature blocks
-        with torch.no_grad():
-            pipe.unet(torch.cat([latent_image] * 2), timesteps, encoder_hidden_states=caption_embedding)
+        pipe.unet(torch.cat([latent_image] * 2), timesteps, encoder_hidden_states=caption_embedding)
 
         # Edge prediction
         intermediate_result = []
         for block in feature_blocks:
             resized = torch.nn.functional.interpolate(block.output, size=latent_image.shape[2], mode="bilinear") 
-            intermidiate_result.append(resized)
+            intermediate_result.append(resized)
             # free vram
             del block.output
             
-        intermidiate_result = torch.cat(intermediate_result, dim=1)
+        intermediate_result = torch.cat(intermediate_result, dim=1)
         pred_edge_map = LEP(intermediate_result, noise_level)
-        pred_edge_map = rearrange(pred_edge_map, "(b w h) c -> b c h w", b=batch_size, h=latent_edge.shape[2], w=latent_edge.shape[3])
+        pred_edge_map = rearrange(pred_edge_map, "(b w h) c -> b c h w", b=batch_size * 2, h=latent_edge.shape[2], w=latent_edge.shape[3])
 
         # calculate MSE loss
         loss = criterion(pred_edge_map, latent_edge)
         loss.backward()
 
         optimizer.step()
+
+        if step % 10 == 0:
+            tbar.set_description(f"Loss: {loss.item():.3f}")
 
         if step >= training_step:
             print(f'Finish to optimize. Save file to {save_path}')

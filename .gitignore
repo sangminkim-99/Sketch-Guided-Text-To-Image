@@ -172,3 +172,4 @@ data/*
 data/imagenet/*
 !data/imagenet/.gitkeep
 
+output/
