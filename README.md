@@ -22,7 +22,7 @@ The Sketch-Guided Text-to-Image Diffusion Models project focuses on generating r
 1. Clone the repository:
 
 ```shell
-git clone https://github.com/sangminkim-99/Sketch-Guided-Text-To-Image.git
+git clone --recurse-submodules https://github.com/sangminkim-99/Sketch-Guided-Text-To-Image.git
 cd Sketch-Guided-Text-To-Image
 ```
 
@@ -56,7 +56,17 @@ pip install -r requirements.txt
 
 ## Usage
 
-TODO
+- Show helper messages for all possible commands
+
+```shell
+python app.py --help
+```
+
+- Train Latent Edge Predictor
+
+```shell
+python app.py train-lep
+```
 
 
 ## Acknowledgments
