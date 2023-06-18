@@ -22,7 +22,7 @@ def train_LEP(
     save_path: Annotated[str, typer.Option(help="path to save LEP model")] = "./output/LEP.pt",
     batch_size: Annotated[int, typer.Option(help="batch size for training LEP. Decrease this if OOM occurs.")] = 16,
     training_step: Annotated[int, typer.Option()] = 3000,
-    lr: Annotated[int, typer.Option()] = 1e-4, # not specified in the paper
+    lr: Annotated[float, typer.Option()] = 1e-4, # not specified in the paper
     num_train_timestep: Annotated[int, typer.Option(help="maximum diffusion timestep")] = 250, # not specified in the paper
 ):
     '''
@@ -52,6 +52,7 @@ def train_LEP(
     # need this lines?
     pipe.unet.requires_grad_(False)
     pipe.text_encoder.requires_grad_(False)
+    LEP.requires_grad_(True)
 
     # load clip tokenizer
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
