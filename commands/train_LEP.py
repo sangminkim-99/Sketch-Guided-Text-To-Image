@@ -9,9 +9,9 @@ from transformers import CLIPTokenizer
 import typer
 from typing_extensions import Annotated
 
-from internals.latent_egde_predictor import hook_unet, LatentEdgePredictor
+from internals.diffusion_utils import encode_img, encode_text, hook_unet, noisy_latent
+from internals.latent_edge_predictor import LatentEdgePredictor
 from internals.LEP_dataset import LEPDataset
-from internals.diffusion_utils import encode_img, encode_text, noisy_latent
 
 
 def train_LEP(
@@ -39,6 +39,9 @@ def train_LEP(
     # the paper use stable-diffusion-v1.4
     pipe = StableDiffusionPipeline.from_pretrained(model_id, safety_checker=None).to(device)
 
+    unet = pipe.unet
+    unet.enable_xformers_memory_efficient_attention()
+
     # hook the feature_blocks of unet
     feature_blocks = hook_unet(pipe.unet)
 
@@ -60,41 +63,48 @@ def train_LEP(
     optimizer = torch.optim.Adam(LEP.parameters(), lr=lr)
     criterion = torch.nn.MSELoss()
 
-    tbar = tqdm(dataloader)
-    for step, (image, edge_map, caption) in enumerate(tbar):
+    step = 0
+    while True:
+        tbar = tqdm(dataloader)
+        for _, (image, edge_map, caption) in enumerate(tbar):
 
-        optimizer.zero_grad()
+            optimizer.zero_grad()
 
-        # image to latent
-        latent_image = encode_img(pipe.vae, image)
-        latent_edge = encode_img(pipe.vae, edge_map)
-        
-        caption_embedding = torch.cat([encode_text(pipe.text_encoder, tokenizer, c) for c in caption])
-        noisy_image, noise_level, timesteps = noisy_latent(latent_image, pipe.scheduler, batch_size * 2, num_train_timestep)
-
-        # one reverse step to get the feature blocks
-        pipe.unet(torch.cat([latent_image] * 2), timesteps, encoder_hidden_states=caption_embedding)
-
-        # Edge prediction
-        intermediate_result = []
-        for block in feature_blocks:
-            resized = torch.nn.functional.interpolate(block.output, size=latent_image.shape[2], mode="bilinear") 
-            intermediate_result.append(resized)
-            # free vram
-            del block.output
+            # image to latent
+            latent_image = encode_img(pipe.vae, image)
+            latent_edge = encode_img(pipe.vae, edge_map)
             
-        intermediate_result = torch.cat(intermediate_result, dim=1)
-        pred_edge_map = LEP(intermediate_result, noise_level)
-        pred_edge_map = rearrange(pred_edge_map, "(b w h) c -> b c h w", b=batch_size * 2, h=latent_edge.shape[2], w=latent_edge.shape[3])
+            caption_embedding = torch.cat([encode_text(pipe.text_encoder, tokenizer, c) for c in caption])
+            noisy_image, noise_level, timesteps = noisy_latent(latent_image, pipe.scheduler, batch_size * 2, num_train_timestep)
 
-        # calculate MSE loss
-        loss = criterion(pred_edge_map, latent_edge)
-        loss.backward()
+            # one reverse step to get the feature blocks
+            pipe.unet(torch.cat([latent_image] * 2), timesteps, encoder_hidden_states=caption_embedding)
 
-        optimizer.step()
+            # Edge prediction
+            intermediate_result = []
+            for block in feature_blocks:
+                resized = torch.nn.functional.interpolate(block.output, size=latent_image.shape[2], mode="bilinear") 
+                intermediate_result.append(resized)
+                # free vram
+                del block.output
+                
+            intermediate_result = torch.cat(intermediate_result, dim=1)
+            pred_edge_map = LEP(intermediate_result, noise_level)
+            pred_edge_map = rearrange(pred_edge_map, "(b w h) c -> b c h w", b=batch_size * 2, h=latent_edge.shape[2], w=latent_edge.shape[3])
 
-        if step % 10 == 0:
-            tbar.set_description(f"Loss: {loss.item():.3f}")
+            # calculate MSE loss
+            loss = criterion(pred_edge_map, latent_edge)
+            loss.backward()
+
+            optimizer.step()
+
+            if step % 10 == 0:
+                tbar.set_description(f"Loss: {loss.item():.3f}")
+
+            if step >= training_step:
+                break
+
+            step += 1
 
         if step >= training_step:
             print(f'Finish to optimize. Save file to {save_path}')

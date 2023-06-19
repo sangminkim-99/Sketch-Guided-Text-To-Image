@@ -64,9 +64,32 @@ python app.py --help
 
 - Train Latent Edge Predictor
 
+Currently supports `--batch-size 1` only.
+
 ```shell
 python app.py train-lep
 ```
+
+- Sample image with Latent Edge Predictor
+
+```shell
+python app.py sample --sketch-file-path {PATH} --prompt {PROMPT}
+```
+
+- Gradio web demo (_debugging_)
+
+```shell
+python app.py demo
+```
+
+
+## TODOs
+
+- [ ] Reproduce the bicycle example
+
+- [ ] Upload pretrained LEP
+
+&#9745; aa
 
 
 ## Acknowledgments

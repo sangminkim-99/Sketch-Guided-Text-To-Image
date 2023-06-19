@@ -1,8 +1,10 @@
 # sketch-guided text-to-image
-einops==0.6.1
-diffusers==0.17.1
-transformers==4.30.2
 accelerate==0.20.3
+diffusers==0.17.1
+einops==0.6.1
+gradio==3.35.2
+transformers==4.30.2
+triton==2.0.0.post1
 typer[all]==0.9.0
 
 # pidinet

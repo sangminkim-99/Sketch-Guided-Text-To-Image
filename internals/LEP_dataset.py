@@ -59,6 +59,9 @@ class LEPDataset(Dataset):
         edge_map = Image.open(triplet.edge_map_path)
         edge_map = Image.merge('RGB', (edge_map, edge_map, edge_map))
         edge_map = self.transform(edge_map)
+
+        # threshold edge_map with 0.5 in image domain
+        edge_map[edge_map < 0] = 0
         
         return image, edge_map, triplet.caption
 
