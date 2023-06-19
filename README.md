@@ -89,8 +89,6 @@ python app.py demo
 
 - [ ] Upload pretrained LEP
 
-&#9745; aa
-
 
 ## Acknowledgments
 
